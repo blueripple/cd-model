@@ -1,0 +1,46 @@
+packages: ./ ../../libs/model-election2 ../../libs/model-demographic ~/DataScience/hvega-utils ~/BlueRipple/libs/district-tools
+jobs: 4
+with-compiler: ghc
+
+allow-newer: base, ghc-prim, bytestring
+           , polysemy-zoo:ghc-prim, streamly-core
+           , freer-simple:template-haskell
+           , foldl-statistics:hashable, foldl-statistics:profunctors
+           , cereal-time:time
+           , heidi:base
+           , generic-trie:base
+           , streamly-bytestring:streamly-core
+           , nonlinear-optimization:primitive, nonlinear-optimization:vector
+           , discrimination:primitive
+
+flags: +streamly9
+
+import: ../../libs/cabal_repo_imports/post-tools.project
+import: ../../libs/cabal_repo_imports/small-data-sets.project
+import: ../../libs/cabal_repo_imports/data-types.project
+import: ../../libs/cabal_repo_imports/data-tools.project
+import: ../../libs/cabal_repo_imports/data-loading.project
+import: ../../libs/cabal_repo_imports/data-DRA.project
+import: ../../libs/cabal_repo_imports/data-RDH-voterfiles.project
+import: ../../libs/cabal_repo_imports/data-overlaps.project
+import: ../../libs/cabal_repo_imports/data-visualizations.project
+import: ../../libs/cabal_repo_imports/data-ACS-Tables.project
+import: ../../libs/cabal_repo_imports/data-ACS-PUMS.project
+import: ../../libs/cabal_repo_imports/data-CES.project
+import: ../../libs/cabal_repo_imports/data-CPS-VS.project
+--import: ../../libs/cabal_repo_imports/model-demographic.project
+--import: ../../libs/cabal_repo_imports/model-election2.project
+import: ../../libs/cabal_repo_imports/model-tools.project
+import: ../../libs/cabal_repo_imports/haskell-stan.project
+import: ../../libs/cabal_repo_imports/knit-haskell.project
+import: ../../libs/cabal_repo_imports/Frames-streamly.project
+import: ../../libs/cabal_repo_imports/Frames-serialize.project
+import: ../../libs/cabal_repo_imports/Frames-utils.project
+import: ../../libs/cabal_repo_imports/data-science-utils.project
+import: ../../libs/cabal_repo_imports/nlopt-haskell.project
+import: ../../libs/cabal_repo_imports/hTensor.project
+import: ../../libs/cabal_repo_imports/Frames-hvega.project
+--import: ../../libs/cabal_repo_imports/hvega-utils.project
+import: ../../libs/cabal_repo_imports/map-reduce-folds.project
+import: ../../libs/cabal_repo_imports/heidi.project
+import: ../../libs/cabal_repo_imports/polysemy-randomFu.project
