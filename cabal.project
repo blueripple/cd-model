@@ -1,17 +1,14 @@
-packages: ./ ../../libs/model-election2 ../../libs/model-demographic ~/DataScience/hvega-utils ~/BlueRipple/libs/district-tools
+packages: ./
 jobs: 4
 with-compiler: ghc
 
-allow-newer: base, ghc-prim, bytestring
-           , polysemy-zoo:ghc-prim, streamly-core
+allow-newer: base, ghc-prim, bytestring, time, primitive, containers, constraints
            , freer-simple:template-haskell
+           , polysemy-zoo:text
            , foldl-statistics:hashable, foldl-statistics:profunctors
            , cereal-time:time
-           , heidi:base
-           , generic-trie:base
-           , streamly-bytestring:streamly-core
-           , nonlinear-optimization:primitive, nonlinear-optimization:vector
-           , discrimination:primitive
+           , pipes-text:text
+           , nonlinear-optimization:vector
 
 flags: +streamly9
 
@@ -28,9 +25,10 @@ import: ../../libs/cabal_repo_imports/data-ACS-Tables.project
 import: ../../libs/cabal_repo_imports/data-ACS-PUMS.project
 import: ../../libs/cabal_repo_imports/data-CES.project
 import: ../../libs/cabal_repo_imports/data-CPS-VS.project
---import: ../../libs/cabal_repo_imports/model-demographic.project
---import: ../../libs/cabal_repo_imports/model-election2.project
+import: ../../libs/cabal_repo_imports/model-demographic.project
+import: ../../libs/cabal_repo_imports/model-election2.project
 import: ../../libs/cabal_repo_imports/model-tools.project
+import: ../../libs/cabal_repo_imports/district-tools.project
 import: ../../libs/cabal_repo_imports/haskell-stan.project
 import: ../../libs/cabal_repo_imports/knit-haskell.project
 import: ../../libs/cabal_repo_imports/Frames-streamly.project
@@ -40,7 +38,8 @@ import: ../../libs/cabal_repo_imports/data-science-utils.project
 import: ../../libs/cabal_repo_imports/nlopt-haskell.project
 import: ../../libs/cabal_repo_imports/hTensor.project
 import: ../../libs/cabal_repo_imports/Frames-hvega.project
---import: ../../libs/cabal_repo_imports/hvega-utils.project
+import: ../../libs/cabal_repo_imports/hvega-utils.project
 import: ../../libs/cabal_repo_imports/map-reduce-folds.project
 import: ../../libs/cabal_repo_imports/heidi.project
 import: ../../libs/cabal_repo_imports/polysemy-randomFu.project
+import: ../../libs/cabal_repo_imports/dependent-hashmap.project

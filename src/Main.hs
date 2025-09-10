@@ -54,6 +54,8 @@ import qualified Stan as Stan
 
 import qualified Frames as F
 import qualified Frames.Constraints as FC
+import qualified Frames.Transform as FT
+import qualified Frames.SimpleJoins as FJ
 import qualified Frames.Streamly.CSV as FCSV
 import qualified Frames.Streamly.OrMissing as FOM
 
@@ -81,8 +83,11 @@ templateVars =
 pandocTemplate ∷ K.TemplatePath
 pandocTemplate = K.FullySpecifiedTemplatePath "pandoc-templates/blueripple_basic.html"
 
-dmr ::  Stan.DesignMatrixRow (F.Record DP.LPredictorsR)
-dmr = MC.tDesignMatrixRow_d ""
+dmrT ::  Stan.DesignMatrixRow (F.Record DP.LPredictorsR)
+dmrT = MC.tDesignMatrixRow_d "T"
+
+dmrP ::  Stan.DesignMatrixRow (F.Record DP.LPredictorsR)
+dmrP = MC.tDesignMatrixRow_d "P"
 
 survey :: MC.ActionSurvey (F.Record DP.CESByCDR)
 survey = MC.CESSurvey (DP.AllSurveyed DP.Both)
@@ -117,7 +122,7 @@ main = do
   resE ← K.knitHtmls knitConfig $ do
     K.logLE K.Info $ "Command Line: " <> show cmdLine
     let postInfo = BR.PostInfo (BR.postStage cmdLine) (BR.PubTimes BR.Unpublished Nothing)
-    analyzeState "PA"
+    analyzeState "AZ"
   case resE of
     Right namedDocs →
       K.writeAllPandocResultsWithInfoAsHtml "" namedDocs
@@ -138,6 +143,8 @@ modelC jointType tc tScenarioM pc pScenarioM sa = do
       psDataForState sa' = DP.PSData . F.filterFrame ((== sa') . view GT.stateAbbreviation) . DP.unPSData
   modeledACSByCDPSData_C <- MACS.modeledACSByCD jointType
   let stateCDs_C = fmap (psDataForState sa) modeledACSByCDPSData_C
+--  cds <- FL.fold (FL.premap (view GT.districtName) FL.set) . DP.unPSData <$> K.ignoreCacheTime stateCDs_C
+--  K.logLE K.Info $ show cds
 --  K.ignoreCacheTime stateCDs_C >>= BRLC.logFrame . F.takeRows 100 . DP.unPSData
   presidentialElections_C <- BRS.presidentialElectionsWithIncumbency
   draShareOverrides_C <- DP.loadOverrides (BLR.draDataPath <> "DRA_Shares/DRA_Share.csv") "DRA 2016-2021"
@@ -160,14 +167,34 @@ analyzeState sa = do
   let mapYear = 2022
       cacheStructure state psName = MR.CacheStructure (Right "model/election2/stan/") (Right "model/election2")
                                     psName "AllCells" state
-  let  turnoutConfig = MC.ActionConfig survey (MC.ModelConfig aggregation alphaModel (contramap F.rcast dmr))
-       prefConfig = MC.PrefConfig (DP.Validated DP.Both) (MC.ModelConfig aggregation alphaModel (contramap F.rcast dmr))
+  let  turnoutConfig = MC.ActionConfig survey (MC.ModelConfig aggregation alphaModel (contramap F.rcast dmrT))
+       prefConfig = MC.PrefConfig (DP.Validated DP.Both) (MC.ModelConfig aggregation alphaModel (contramap F.rcast dmrP))
+       psDataForState :: Text -> DP.PSData MACS.CDKeyR -> DP.PSData MACS.CDKeyR
+       psDataForState sa' = DP.PSData . F.filterFrame ((== sa') . view GT.stateAbbreviation) . DP.unPSData
+  modeledACSByCDPSData_C <- MACS.modeledACSByCD MACS.Modeled
+  let stateCDs_C = fmap (psDataForState sa) modeledACSByCDPSData_C
+      cdDemographicSummary_C = FL.fold (DP.summarizeASER_Fld @[GT.StateAbbreviation, GT.DistrictTypeC, GT.DistrictName]) . DP.unPSData <$> stateCDs_C
+
   draCD_C <- BLR.allPassedCongressional 2024 BRC.TY2022
+--  K.ignoreCacheTime draCD_C >>= BRLC.logFrame . F.filterFrame ((== "FL") . (view GT.stateAbbreviation))
   model_C <- modelC MACS.Modeled turnoutConfig Nothing prefConfig Nothing sa
-  let deps = (,) <$> model_C <*> draCD_C
-  modelDRA_C <- BRCC.retrieveOrMakeFrame ("cd-model/" <> sa <> "_analysis.bin") deps $ \(m, dra) -> BSL.modelAndDRA m dra sa
-  K.ignoreCacheTime modelDRA_C >>= BRLC.logFrame
+  let deps = (,,) <$> cdDemographicSummary_C <*> model_C <*> draCD_C
+  joined <- BRCC.retrieveOrMakeFrame ("cd-model/" <> sa <> "_analysis.bin") deps $ \(dem, modelMap, dra) -> do
+    let model = modeledMapToFrame modelMap
+        (modeledAndDRA, missingModelDRA, missingSummary)
+          = FJ.leftJoin3WithMissing @[GT.StateAbbreviation, GT.DistrictTypeC, GT.DistrictName] model dra dem
+    when (not $ null missingModelDRA) $ K.knitError $ "cd-model: Missing keys in modeledDVs/dra join: " <> show missingModelDRA
+    when (not $ null missingSummary) $ K.knitError $ "cd-model: Missing keys in modeledDVs+dra/sumamry join: " <> show missingSummary
+    pure modeledAndDRA
+  K.ignoreCacheTime joined >>= BRLC.logFrame
+  --K.ignoreCacheTime model_C >>= K.logLE K.Info . show . MC.unPSMap--BRLC.logFrame
+
+--  modelDRA_C <- BRCC.retrieveOrMakeFrame ("cd-model/" <> sa <> "_analysis.bin") deps $ \(m, dra) -> BSL.modelAndDRA m dra sa
+--  K.ignoreCacheTime modelDRA_C >>= BRLC.logFrame
 --  pure ()
+
+modeledMapToFrame :: MC.PSMap SLDKeyR MT.ConfidenceInterval -> F.FrameRec ModeledR
+modeledMapToFrame = F.toFrame . fmap (\(k, ci) -> k F.<+> FT.recordSingleton @MR.ModelCI ci) . M.toList . MC.unPSMap
 
 {-
 lastPush :: (K.KnitEffects r, BRCC.CacheEffects r) => K.Sem r ()
